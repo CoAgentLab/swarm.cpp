@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../util.h"
+#include "../utils.h"
 #include <sstream>
 
 // Test debug_print function

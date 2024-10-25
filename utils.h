@@ -6,7 +6,7 @@
 #include <functional>
 #include <ctime>
 #include <nlohmann/json.hpp>
-#include "types.h"
+#include "agents.h"
 
 
 inline void debug_print(bool debug, const std::string& message) {

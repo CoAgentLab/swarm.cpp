@@ -1,3 +1,10 @@
+# IDE files
+.vscode/
+.idea/
+.vs/
+.cache/
+.ipynb_checkpoints/
+
 # cmake build directory and files
 build/
 CMakeCache.txt

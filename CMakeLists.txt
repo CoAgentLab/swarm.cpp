@@ -16,10 +16,16 @@ find_package(GTest REQUIRED CONFIG PATHS /usr/local/lib/cmake/GTest NO_DEFAULT_P
 # message(STATUS "GTest libraries: ${GTEST_LIBRARIES}")
 
 # Add source files
-add_executable(util_test tests/util_test.cpp)
+add_executable(test tests/base_tests.cpp)
+add_executable(swarm main.cpp)  # Add the main program
 
 # Link against Google Test and project libraries
-target_link_libraries(util_test GTest::gtest GTest::gtest_main)
+target_link_libraries(test GTest::gtest GTest::gtest_main)
+
+# Link CURL and other dependencies for the main program
+find_package(CURL REQUIRED)
+target_link_libraries(swarm PRIVATE CURL::libcurl)
 
 # Include directories
-target_include_directories(util_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(swarm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

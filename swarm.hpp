@@ -32,26 +32,26 @@ public:
     ) {
         nlohmann::json payload;
         payload["model"] = model_override.empty() ? agent.get_model() : model_override;
-        payload["messages"] = history;
-        payload["stream"] = stream;
-
-        // Convert functions to JSON using the improved util functions
-        nlohmann::json tools_json = nlohmann::json::array();
-        for (const auto& func : agent.functions) {
-            nlohmann::json func_json;
-            // Create metadata for each function
-            auto metadata = create_function_metadata(
-                "function_name",  // need to store function names somewhere
-                "function description"  // And descriptions
-            );
-            function_to_json(func, metadata, func_json);
-            tools_json.push_back(func_json);
-        }
         
-        if (!tools_json.empty()) {
-            payload["functions"] = tools_json;
-            payload["parallel_tool_calls"] = agent.parallel_tool_calls;
+        // Combine history messages into a single prompt
+        std::string combined_prompt;
+        for (const auto& msg : history) {
+            if (msg["role"] == "user") {
+                combined_prompt += msg["content"].get<std::string>() + "\n";
+            }
         }
+        payload["prompt"] = combined_prompt;
+        payload["echo"] = false;
+        payload["frequency_penalty"] = 0;
+        payload["logprobs"] = 0;
+        payload["max_tokens"] = 1024;
+        payload["presence_penalty"] = 0;
+        payload["stop"] = nullptr;
+        payload["stream"] = stream;
+        payload["stream_options"] = nullptr;
+        payload["suffix"] = nullptr;
+        payload["temperature"] = 1;
+        payload["top_p"] = 1;
 
         // Initialize CURL
         CURL* curl = curl_easy_init();
@@ -59,17 +59,18 @@ public:
         nlohmann::json response_json;
 
         if (curl) {
-            // Set headers
+            // Update headers
             struct curl_slist* headers = NULL;
             headers = curl_slist_append(headers, "Content-Type: application/json");
+            headers = curl_slist_append(headers, "Accept: application/json");
             std::string auth_header = "Authorization: Bearer " + api_key_;
             headers = curl_slist_append(headers, auth_header.c_str());
 
             // Convert payload to string
             std::string payload_str = payload.dump();
 
-            // Set CURL options
-            curl_easy_setopt(curl, CURLOPT_URL, (base_url_ + "/v1/chat/completions").c_str());
+            std::string request_url = base_url_ + ""; // "" for future use
+            curl_easy_setopt(curl, CURLOPT_URL, request_url.c_str());
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload_str.c_str());
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -116,7 +117,18 @@ public:
             throw std::runtime_error("Failed to initialize CURL");
         }
 
-        return response_json;
+        // Convert DeepSeek response format to match expected format
+        nlohmann::json converted_response;
+        if (!response_json["choices"].empty()) {
+            converted_response["choices"] = {{
+                {"message", {
+                    {"role", "assistant"},
+                    {"content", response_json["choices"][0]["text"]}
+                }}
+            }};
+        }
+
+        return converted_response;
     }
 
 

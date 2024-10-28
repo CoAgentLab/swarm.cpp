@@ -43,7 +43,8 @@ int main() {
     // Create a weather agent
     Agent weather_agent;
     weather_agent.set_name("WeatherBot");
-    weather_agent.set_model("deepseek-ai/DeepSeek-V2.5");
+    // weather_agent.set_model("deepseek-ai/DeepSeek-V2.5");
+    weather_agent.set_model("deepseek-chat");    
     weather_agent.set_instructions(
         "You are a helpful weather assistant. You can:\n"
         "1. Check current weather conditions\n"
@@ -82,8 +83,10 @@ int main() {
     weather_agent.functions = {check_weather, get_forecast, get_weather_alerts};
     
     // Initialize the Swarm with your API credentials
-    Swarm swarm("sk-hxjweswehodmsljfxlwbigqfhkfcxwyttwxpkxahajcvjmgr", 
-                  "https://api.siliconflow.cn/v1");
+    std::string api_key = "xxxxxxxxxx";
+    std::string base_url = "https://api.deepseek.com/beta/completions";
+    Swarm swarm(api_key, base_url);
+                
     
     // Interactive loop for weather queries
     std::string user_input;

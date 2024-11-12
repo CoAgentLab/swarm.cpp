@@ -2,42 +2,34 @@
 #include "swarm.hpp"
 #include <iostream>
 
-
-// Function to check weather (this is a mock implementation)
-std::variant<std::string, Agent, std::map<std::string, std::string>> 
-check_weather(const std::map<std::string, std::string>& params) {
-    // In a real implementation, you would make an API call to a weather service
-    // For this example, we'll return a mock response
-    if (params.find("location") == params.end()) {
+// Direct AgentFunction implementations
+AgentFunction check_weather = [](const std::map<std::string, std::string>& parameters) -> std::variant<std::string, Agent, std::map<std::string, std::string>> {
+    if (parameters.find("location") == parameters.end()) {
         return "Error: Location not provided";
     }
     
-    return "The weather in " + params.at("location") + " is sunny with a temperature of 72°F";
-}
+    return "The weather in " + parameters.at("location") + " is sunny with a temperature of 72°F";
+};
 
-// Additional weather-related functions
-std::variant<std::string, Agent, std::map<std::string, std::string>> 
-get_forecast(const std::map<std::string, std::string>& params) {
-    if (params.find("location") == params.end()) {
+AgentFunction get_forecast = [](const std::map<std::string, std::string>& parameters) -> std::variant<std::string, Agent, std::map<std::string, std::string>> {
+    if (parameters.find("location") == parameters.end()) {
         return "Error: Location not provided";
     }
-    if (params.find("days") == params.end()) {
+    if (parameters.find("days") == parameters.end()) {
         return "Error: Number of days not provided";
     }
-    
-    return "The " + params.at("days") + "-day forecast for " + params.at("location") + 
-           " shows mild temperatures with partly cloudy skies.";
-}
 
-std::variant<std::string, Agent, std::map<std::string, std::string>> 
-get_weather_alerts(const std::map<std::string, std::string>& params) {
-    if (params.find("location") == params.end()) {
+    return "The " + parameters.at("days") + "-day forecast for " + parameters.at("location") + 
+           " shows mild temperatures with partly cloudy skies.";
+};
+
+AgentFunction get_weather_alerts = [](const std::map<std::string, std::string>& parameters) -> std::variant<std::string, Agent, std::map<std::string, std::string>> {
+    if (parameters.find("location") == parameters.end()) {
         return "Error: Location not provided";
     }
     
-    return "No current weather alerts for " + params.at("location");
-}
-
+    return "No current weather alerts for " + parameters.at("location");
+};
 
 int main() {
     // Create a weather agent
@@ -55,36 +47,40 @@ int main() {
     );
     
     // Add the weather-related functions with proper metadata
-    auto check_weather_metadata = create_function_metadata(
+    auto check_weather_metadata = create_function_signature<decltype(check_weather)>(
         "check_weather",
         "Get current weather conditions for a location",
-        {{"location", "The city or location to check weather for"}},
-        {"location"}
+        check_weather,
+        std::vector<Parameter>{
+            {"location", "The city or location to check weather for"}
+        },
+        std::vector<std::string>{"location"}
     );
     
-    auto get_forecast_metadata = create_function_metadata(
+    auto get_forecast_metadata = create_function_signature<decltype(get_forecast)>(
         "get_forecast",
         "Get weather forecast for a specified number of days",
-        {
-            {"location", "The city or location to get forecast for"},
+        get_forecast,
+        {{"location", "The city or location to get forecast for"},
             {"days", "Number of days for the forecast (1-7)"}
         },
         {"location", "days"}
     );
     
-    auto get_alerts_metadata = create_function_metadata(
+    auto get_alerts_metadata = create_function_signature<decltype(get_weather_alerts)>(
         "get_weather_alerts",
         "Check for any active weather alerts or warnings",
+        get_weather_alerts,
         {{"location", "The city or location to check alerts for"}},
         {"location"}
     );
     
     // Add functions to the agent
-    weather_agent.functions = {check_weather, get_forecast, get_weather_alerts};
+    weather_agent.functions = {check_weather_metadata, get_forecast_metadata, get_alerts_metadata};
     
     // Initialize the Swarm with your API credentials
-    std::string api_key = "xxxxxxxxxx";
-    std::string base_url = "https://api.deepseek.com/beta/completions";
+    std::string api_key = "sk-face3f6903e24f778bbe44b21d82dc6e";
+    std::string base_url = "https://api.deepseek.com/chat/completions";
     Swarm swarm(api_key, base_url);
                 
     

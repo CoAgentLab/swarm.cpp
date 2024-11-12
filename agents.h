@@ -15,12 +15,46 @@ class Agent;
 using AgentFunction = std::function<std::variant<std::string, Agent, std::map<std::string, std::string>>(const std::map<std::string, std::string>&)>;
 
 
+// a parameter of a function
+struct Parameter {
+    std::string name;
+    std::string type;
+    std::string description;
+};
+
+struct FunctionSignature {
+    std::string name;
+    std::string description;
+    AgentFunction func;
+    std::vector<Parameter> parameters;
+    std::vector<std::string> required_parameters;
+};
+
+// Helper to automatically create a FunctionSignature
+template <typename Func>
+inline FunctionSignature create_function_signature(
+    const std::string &name, 
+    const std::string &description, 
+    AgentFunction func, 
+    const std::vector<Parameter> &params,
+    const std::vector<std::string> &required = {}) 
+{
+    return FunctionSignature{
+        .name = name,
+        .description = description,
+        .func = func,
+        .parameters = params,
+        .required_parameters = required
+    };
+}
+
+
 class Agent {
 public:
     std::string name = "Agent";
     std::string model = "gpt-4o";
     std::string instructions = "You are a helpful agent.";
-    std::vector<AgentFunction> functions;
+    std::vector<FunctionSignature> functions;
     std::string tool_choice;
     bool parallel_tool_calls = true;
 

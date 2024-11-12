@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 #include <variant>
 #include <curl/curl.h>
+#include <iostream>
 
 
 // Callback function to write response data
@@ -33,25 +34,49 @@ public:
         nlohmann::json payload;
         payload["model"] = model_override.empty() ? agent.get_model() : model_override;
         
-        // Combine history messages into a single prompt
-        std::string combined_prompt;
-        for (const auto& msg : history) {
-            if (msg["role"] == "user") {
-                combined_prompt += msg["content"].get<std::string>() + "\n";
+        // Create messages array starting with system instructions
+        std::vector<nlohmann::json> messages = {
+            {{"role", "system"}, {"content", agent.get_instructions()}}
+        };
+        
+        // Add all history messages
+        messages.insert(messages.end(), history.begin(), history.end());
+        
+        // Update payload with messages
+        payload["messages"] = messages;
+        
+        // payload["echo"] = false;
+        // payload["frequency_penalty"] = 0;
+        // payload["logprobs"] = 0;
+        // payload["max_tokens"] = 1024;
+        // payload["presence_penalty"] = 0;
+        // payload["stop"] = nullptr;
+        // payload["stream_options"] = nullptr;
+        // payload["suffix"] = nullptr;
+        // payload["temperature"] = 1;
+        // payload["top_p"] = 1;
+        payload["stream"] = stream;
+
+        // Add tool calls
+        if (!agent.functions.empty()) {
+            nlohmann::json tools = nlohmann::json::array();
+            
+            // Convert each function to a tool definition
+            for (size_t i = 0; i < agent.functions.size(); i++) {
+                nlohmann::json tool;
+                // Note: You'll need to store function metadata alongside the functions
+                // This is a simplified example - you may want to enhance this  
+                function_to_json(agent.functions[i], tool);
+                tools.push_back(tool);
+            }
+            
+            payload["tools"] = tools;
+            
+            // Set tool_choice if specified
+            if (!agent.tool_choice.empty()) {
+                payload["tool_choice"] = agent.tool_choice;
             }
         }
-        payload["prompt"] = combined_prompt;
-        payload["echo"] = false;
-        payload["frequency_penalty"] = 0;
-        payload["logprobs"] = 0;
-        payload["max_tokens"] = 1024;
-        payload["presence_penalty"] = 0;
-        payload["stop"] = nullptr;
-        payload["stream"] = stream;
-        payload["stream_options"] = nullptr;
-        payload["suffix"] = nullptr;
-        payload["temperature"] = 1;
-        payload["top_p"] = 1;
 
         // Initialize CURL
         CURL* curl = curl_easy_init();
@@ -68,6 +93,11 @@ public:
 
             // Convert payload to string
             std::string payload_str = payload.dump();
+            
+            // Debug print the payload
+            if (debug) {
+                debug_print(debug, "Request payload: " + payload_str);
+            }
 
             std::string request_url = base_url_ + ""; // "" for future use
             curl_easy_setopt(curl, CURLOPT_URL, request_url.c_str());
@@ -98,13 +128,13 @@ public:
             curl_slist_free_all(headers);
             curl_easy_cleanup(curl);
 
+            std::cout << "Response from LLM: \n" << response_string << std::endl;
             // Parse response
             try {
                 response_json = nlohmann::json::parse(response_string);
             } catch (const nlohmann::json::parse_error& e) {
                 throw std::runtime_error("Failed to parse API response: " + std::string(e.what()));
             }
-
             // Check for API errors
             if (http_code != 200) {
                 std::string error_message = response_json.contains("error") ? 
@@ -118,17 +148,29 @@ public:
         }
 
         // Convert DeepSeek response format to match expected format
-        nlohmann::json converted_response;
-        if (!response_json["choices"].empty()) {
-            converted_response["choices"] = {{
-                {"message", {
-                    {"role", "assistant"},
-                    {"content", response_json["choices"][0]["text"]}
-                }}
-            }};
-        }
+        // nlohmann::json converted_response;
+        // if (!response_json["choices"].empty()) {
+        //     auto& choice = response_json["choices"][0];
+        //     nlohmann::json message = {
+        //         {"role", "assistant"}
+        //     };
 
-        return converted_response;
+        //     // Handle content if present
+        //     if (choice.contains("text")) {
+        //         message["content"] = choice["text"];
+        //     }
+
+        //     // Handle tool calls if present
+        //     if (choice.contains("tool_calls")) {
+        //         message["tool_calls"] = choice["tool_calls"];
+        //     }
+
+        //     converted_response["choices"] = {{
+        //         {"message", message}
+        //     }};
+        // }
+
+        return response_json;
     }
 
 
@@ -156,7 +198,7 @@ public:
 
     Response handle_tool_calls(
         const nlohmann::json& tool_calls,
-        const std::vector<AgentFunction>& functions,
+        const std::vector<FunctionSignature>& functions,
         std::map<std::string, std::string>& context_variables,
         bool debug
     ) {
@@ -168,24 +210,34 @@ public:
             
             // Find matching function
             for (const auto& func : functions) {
-                auto raw_result = func(context_variables);
-                Result result = handle_function_result(raw_result, debug);
-                
-                if (result.has_value()) {
-                    std::map<std::string, std::string> message{
-                        {"role", "function"},
-                        {"name", name},
-                        {"content", result.get_value()}
-                    };
-                    response.add_message(message);
+                if (func.name == name) {
+                    // Call the function
+                    auto raw_result = func.func(context_variables);
+                    Result result = handle_function_result(raw_result, debug);
+                    
+                    // Add the function result to the response
+                    if (result.has_value()) {
+                        std::map<std::string, std::string> message{
+                            {"role", "function"},
+                            {"name", name},
+                            {"content", result.get_value()}
+                        };
+                        response.add_message(message);
+                    }
+
+                    // Update the response with the function result
+                    if (result.has_agent()) {
+                        response.set_agent(result.get_agent());
+                    }
+                    
+                    if (!result.get_context().empty()) {
+                        merge_fields(context_variables, result.get_context());
+                    }
+                    
+                    break; // Exit the loop after finding and processing the matching function
                 }
-                
-                if (result.has_agent()) {
-                    response.set_agent(result.get_agent());
-                }
-                
-                if (!result.get_context().empty()) {
-                    merge_fields(context_variables, result.get_context());
+                else {
+                    throw std::runtime_error("No matching function found for tool call: " + name);  
                 }
             }
         }
@@ -213,13 +265,13 @@ public:
             nlohmann::json completion = get_chat_completion(
                 *active_agent, history, context_variables, model_override, stream, debug
             );
-            
+            debug_print(debug, "Received completion: " + completion.dump());
             nlohmann::json message = completion["choices"][0]["message"];
-            debug_print(debug, "Received completion: " + message.dump());
+            debug_print(debug, "Received message in completion: " + message.dump());
             message["sender"] = active_agent->get_name();
             history.push_back(message);
 
-            if (!message.contains("tool_calls") || !execute_tools) {
+            if (!execute_tools || !message.contains("tool_calls") || message["tool_calls"].empty()) {
                 debug_print(debug, "Ending turn - no tool calls or tool execution disabled");
                 break;
             }

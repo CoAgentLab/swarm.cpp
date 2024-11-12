@@ -34,6 +34,7 @@ public:
         nlohmann::json payload;
         payload["model"] = model_override.empty() ? agent.get_model() : model_override;
         
+        debug_print(debug, "Agent instructions: " + agent.get_instructions());
         // Create messages array starting with system instructions
         std::vector<nlohmann::json> messages = {
             {{"role", "system"}, {"content", agent.get_instructions()}}
@@ -86,7 +87,7 @@ public:
         if (curl) {
             // Update headers
             struct curl_slist* headers = NULL;
-            headers = curl_slist_append(headers, "Content-Type: application/json");
+            headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
             headers = curl_slist_append(headers, "Accept: application/json");
             std::string auth_header = "Authorization: Bearer " + api_key_;
             headers = curl_slist_append(headers, auth_header.c_str());
@@ -213,7 +214,7 @@ public:
             for (const auto& func : functions) {
                 if (func.name == name) {
                     // Parse JSON arguments into a map
-                    std::map<std::string, std::string> parsed_args;
+                    std::map<std::string, std::string> parsed_args = {};
                     if (args.is_string()) {
                         // Parse the JSON string into an object
                         auto args_obj = nlohmann::json::parse(args.get<std::string>());
@@ -228,8 +229,20 @@ public:
                     }
 
                     // Call the function with parsed arguments
+                    std::cout << "executing function...: " << name << std::endl;
+                    std::cout << "parsed_args: {";
+                    for (const auto& [key, value] : parsed_args) {
+                        std::cout << "\"" << key << "\": \"" << value << "\", ";
+                    }
+                    std::cout << "}" << std::endl;
                     auto raw_result = func.func(parsed_args);
-                    debug_print(debug, "Function raw result: " + std::get<std::string>(raw_result));
+                    if (debug) {
+                        if (std::holds_alternative<std::string>(raw_result)) {
+                            debug_print(debug, "Function raw result: " + std::get<std::string>(raw_result));
+                        } else if (std::holds_alternative<Agent>(raw_result)) {
+                            debug_print(debug, "Function returned an Agent");
+                        }
+                    }
                     Result result = handle_function_result(raw_result, debug);
 
                     // Add the function result to the response
@@ -243,9 +256,10 @@ public:
                         response.add_message(message);
                     }
 
-                    // Update the response with the function result
+                    // Update: Create a deep copy of the agent before storing
                     if (result.has_agent()) {
-                        response.set_agent(result.get_agent());
+                        auto agent_ptr = std::make_shared<Agent>(*result.get_agent());
+                        response.set_agent(agent_ptr);
                     }
                     
                     if (!result.get_context().empty()) {
@@ -274,12 +288,13 @@ public:
         int max_turns = 10,
         bool execute_tools = true
     ) {
-        Agent* active_agent = &agent;
+        std::shared_ptr<Agent> active_agent = std::make_shared<Agent>(agent);
         std::vector<nlohmann::json> history = messages;
         int init_len = messages.size();
         Response final_response;
 
         while (history.size() - init_len < max_turns && active_agent != nullptr) {
+            print_agent_state(debug, *active_agent);
             nlohmann::json completion = get_chat_completion(
                 *active_agent, history, context_variables, model_override, stream, debug
             );
@@ -307,9 +322,9 @@ public:
             
             // Update active agent if changed
             if (partial_response.get_agent()) {
-                active_agent = partial_response.get_agent().get();
+                active_agent = partial_response.get_agent();
             }
-            
+
             // Update context variables
             merge_fields(context_variables, partial_response.get_context());
         }

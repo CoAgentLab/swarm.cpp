@@ -34,6 +34,18 @@ inline void debug_print(bool debug, const std::string& message) {
     }
 }
 
+inline void print_agent_state(bool debug, const Agent& agent) {
+    if (!debug) return;
+
+    std::cout << "\nActive Agent State:"    
+                << "\nName: " << agent.get_name()
+                << "\nModel: " << agent.get_model() 
+                << "\nInstructions: " << agent.get_instructions()
+                << "\nNumber of functions: " << agent.functions.size()
+                << "\nTool choice: " << agent.tool_choice
+                << "\nParallel tool calls: " << (agent.parallel_tool_calls ? "true" : "false")
+                << std::endl;
+}
 
 inline void merge_fields(std::map<std::string, std::string>& target, 
                          const std::map<std::string, std::string>& source) {
@@ -62,8 +74,8 @@ inline const std::map<std::type_index, std::string> typeMap = {
 
 inline void function_to_json(const FunctionSignature &funcSig,
                              nlohmann::json& json) {
-    nlohmann::json properties;
-    std::vector<std::string> required;
+    nlohmann::json properties = nlohmann::json::object();
+    std::vector<std::string> required = {};
 
     for (const auto &param : funcSig.parameters) {
         std::string jsonType = typeMap.count(typeid(param.type)) ? 

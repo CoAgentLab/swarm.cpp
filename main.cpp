@@ -5,6 +5,10 @@
 // Direct AgentFunction implementations
 AgentFunction check_weather = [](const std::map<std::string, std::string>& parameters) -> std::variant<std::string, Agent, std::map<std::string, std::string>> {
     if (parameters.find("location") == parameters.end()) {
+        std::cout << "Debug: Parameters received:" << std::endl;
+        for (const auto& [key, value] : parameters) {
+            std::cout << "  " << key << ": " << value << std::endl;
+        }
         return "Error: Location not provided";
     }
     

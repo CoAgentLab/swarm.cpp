@@ -207,20 +207,38 @@ public:
         for (const auto& tool_call : tool_calls) {
             std::string name = tool_call["function"]["name"];
             auto args = tool_call["function"]["arguments"];
-            
+            debug_print(debug, "Tool calling: " + name);
+            debug_print(debug, "Tool calling arguments: " + args.dump());
             // Find matching function
             for (const auto& func : functions) {
                 if (func.name == name) {
-                    // Call the function
-                    auto raw_result = func.func(context_variables);
+                    // Parse JSON arguments into a map
+                    std::map<std::string, std::string> parsed_args;
+                    if (args.is_string()) {
+                        // Parse the JSON string into an object
+                        auto args_obj = nlohmann::json::parse(args.get<std::string>());
+                        for (auto& [key, value] : args_obj.items()) {
+                            parsed_args[key] = value.get<std::string>();
+                        }
+                    } else if (args.is_object()) {
+                        // Direct object conversion
+                        for (auto& [key, value] : args.items()) {
+                            parsed_args[key] = value.get<std::string>();
+                        }
+                    }
+
+                    // Call the function with parsed arguments
+                    auto raw_result = func.func(parsed_args);
+                    debug_print(debug, "Function raw result: " + std::get<std::string>(raw_result));
                     Result result = handle_function_result(raw_result, debug);
-                    
+
                     // Add the function result to the response
                     if (result.has_value()) {
                         std::map<std::string, std::string> message{
-                            {"role", "function"},
+                            {"role", "tool"},
                             {"name", name},
-                            {"content", result.get_value()}
+                            {"content", result.get_value()},
+                            {"tool_call_id", tool_call["id"]},
                         };
                         response.add_message(message);
                     }
@@ -265,9 +283,8 @@ public:
             nlohmann::json completion = get_chat_completion(
                 *active_agent, history, context_variables, model_override, stream, debug
             );
-            debug_print(debug, "Received completion: " + completion.dump());
             nlohmann::json message = completion["choices"][0]["message"];
-            debug_print(debug, "Received message in completion: " + message.dump());
+            debug_print(debug, "Received message: " + message.dump());
             message["sender"] = active_agent->get_name();
             history.push_back(message);
 
@@ -279,6 +296,9 @@ public:
             Response partial_response = handle_tool_calls(
                 message["tool_calls"], active_agent->functions, context_variables, debug
             );
+            
+            nlohmann::json messages_json(partial_response.get_messages());
+            debug_print(debug, "Partial response: " + messages_json.dump());
             
             // Update history with function responses
             for (const auto& msg : partial_response.get_messages()) {
@@ -295,6 +315,7 @@ public:
         }
 
         // Prepare final response
+        std::cout << "Final response history: " << history.size() << std::endl;
         for (auto it = history.begin() + init_len; it != history.end(); ++it) {
             std::map<std::string, std::string> message;
             for (auto& [key, value] : it->items()) {
@@ -302,7 +323,14 @@ public:
             }
             final_response.add_message(message);
         }
-        
+        // Debug output for final response messages
+        if (debug) {
+            nlohmann::json debug_messages = nlohmann::json::array();
+            for (const auto& msg : final_response.get_messages()) {
+                debug_messages.push_back(msg);
+            }
+            debug_print(debug, "Final response messages: " + debug_messages.dump(2));
+        }
         final_response.set_agent(std::make_shared<Agent>(*active_agent));
         final_response.set_context(context_variables);
 

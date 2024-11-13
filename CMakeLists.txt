@@ -34,10 +34,10 @@ add_library(http_client http_client.cpp)
 
 # Add source files
 # add_executable(test tests/base_tests.cpp)
-add_executable(swarm main.cpp)  # Add the main program
+add_executable(weather_agent examples/weather_agent.cpp)  # Add the main program
 add_executable(agent_handoff examples/agent_handoff.cpp)
 add_executable(base_agent examples/base_agent.cpp)
-
+add_executable(function_calling examples/function_calling.cpp)
 
 # Link against Google Test and project libraries
 # target_link_libraries(test GTest::gtest GTest::gtest_main)
@@ -45,13 +45,14 @@ add_executable(base_agent examples/base_agent.cpp)
 
 # Link CURL and other dependencies for the main program
 find_package(CURL REQUIRED)
-target_link_libraries(swarm PRIVATE http_client CURL::libcurl )
+target_link_libraries(weather_agent PRIVATE http_client CURL::libcurl )
 target_link_libraries(agent_handoff PRIVATE http_client CURL::libcurl)
 target_link_libraries(base_agent PRIVATE http_client CURL::libcurl)
-
+target_link_libraries(function_calling PRIVATE http_client CURL::libcurl)
 
 # Include directories
 # target_include_directories(test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(swarm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(weather_agent PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(agent_handoff PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(base_agent PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(function_calling PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

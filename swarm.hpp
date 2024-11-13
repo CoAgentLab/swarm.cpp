@@ -246,12 +246,14 @@ public:
                     Result result = handle_function_result(raw_result, debug);
 
                     // Add the function result to the response
-                    if (result.has_value()) {
+                    if (result.has_value() || result.has_agent()) {
                         std::map<std::string, std::string> message{
                             {"role", "tool"},
-                            {"name", name},
-                            {"content", result.get_value()},
                             {"tool_call_id", tool_call["id"]},
+                            {"tool_name", name},
+                            {"content", result.has_agent() ? 
+                                nlohmann::json({{"assistant", result.get_agent()->get_name()}}).dump() 
+                                : result.get_value()}
                         };
                         response.add_message(message);
                     }

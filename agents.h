@@ -58,8 +58,12 @@ public:
     std::string tool_choice;
     bool parallel_tool_calls = true;
 
-    // Default constructor
-    Agent() = default;
+    // constructor with default values
+    Agent(
+        const std::string& name = "Agent",
+        const std::string& model = "gpt-4",
+        const std::string& instructions = "You are a helpful agent."
+    ) : name(name), model(model), instructions(instructions) {}
 
     // Virtual destructor for safe inheritance
     virtual ~Agent() = default;
@@ -81,6 +85,7 @@ public:
 
     virtual std::string get_instructions() const { return instructions; }
     virtual void set_instructions(const std::string& new_instructions) { instructions = new_instructions; }
+
 
 protected:
     // Protected methods that derived classes can use

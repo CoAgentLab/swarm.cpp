@@ -37,11 +37,7 @@ AgentFunction get_weather_alerts = [](const std::map<std::string, std::string>& 
 
 int main() {
     // Create a weather agent
-    Agent weather_agent;
-    weather_agent.set_name("WeatherBot");
-    // weather_agent.set_model("deepseek-ai/DeepSeek-V2.5");
-    weather_agent.set_model("deepseek-chat");    
-    weather_agent.set_instructions(
+    Agent weather_agent("WeatherBot", "deepseek-chat", 
         "You are a helpful weather assistant. You can:\n"
         "1. Check current weather conditions\n"
         "2. Provide weather forecasts\n"
@@ -56,6 +52,7 @@ int main() {
         "Get current weather conditions for a location",
         check_weather,
         std::vector<Parameter>{
+            // not initialized correctly, to be fixed
             {"location", "The city or location to check weather for"}
         },
         std::vector<std::string>{"location"}

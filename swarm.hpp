@@ -1,16 +1,18 @@
 #pragma once
 
-#include "agents.h"
-#include "utils.h"
 #include <vector>
 #include <string>
 #include <map>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <variant>
-#include <curl/curl.h>
 #include <iostream>
+
 #include "http_client.h"
+#include "agents.h"
+#include "utils.h"
+
+
 
 class Swarm {
 public:

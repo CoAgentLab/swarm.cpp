@@ -10,13 +10,7 @@
 #include <variant>
 #include <curl/curl.h>
 #include <iostream>
-
-
-// Callback function to write response data
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* userp) {
-    userp->append((char*)contents, size * nmemb);
-    return size * nmemb;
-}
+#include "http_client.h"
 
 class Swarm {
 public:
@@ -79,97 +73,25 @@ public:
             }
         }
 
-        // Initialize CURL
-        CURL* curl = curl_easy_init();
-        std::string response_string;
+        // Make the HTTP request
+        auto response = HttpClient::post_json(base_url_, api_key_, payload, debug);
+        
+        // Parse response
         nlohmann::json response_json;
-
-        if (curl) {
-            // Update headers
-            struct curl_slist* headers = NULL;
-            headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
-            headers = curl_slist_append(headers, "Accept: application/json");
-            std::string auth_header = "Authorization: Bearer " + api_key_;
-            headers = curl_slist_append(headers, auth_header.c_str());
-
-            // Convert payload to string
-            std::string payload_str = payload.dump();
-            
-            // Debug print the payload
-            if (debug) {
-                debug_print(debug, "Request payload: " + payload_str);
-            }
-
-            std::string request_url = base_url_ + ""; // "" for future use
-            curl_easy_setopt(curl, CURLOPT_URL, request_url.c_str());
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload_str.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_string);
-
-            if (debug) {
-                curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-            }
-
-            // Perform the request
-            CURLcode res = curl_easy_perform(curl);
-
-            if (res != CURLE_OK) {
-                // Clean up
-                curl_slist_free_all(headers);
-                curl_easy_cleanup(curl);
-                throw std::runtime_error("CURL request failed: " + std::string(curl_easy_strerror(res)));
-            }
-
-            // Get HTTP response code
-            long http_code = 0;
-            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-
-            // Clean up
-            curl_slist_free_all(headers);
-            curl_easy_cleanup(curl);
-
-            std::cout << "Response from LLM: \n" << response_string << std::endl;
-            // Parse response
-            try {
-                response_json = nlohmann::json::parse(response_string);
-            } catch (const nlohmann::json::parse_error& e) {
-                throw std::runtime_error("Failed to parse API response: " + std::string(e.what()));
-            }
-            // Check for API errors
-            if (http_code != 200) {
-                std::string error_message = response_json.contains("error") ? 
-                    response_json["error"]["message"].get<std::string>() : 
-                    "Unknown API error";
-                throw std::runtime_error("API request failed with code " + 
-                    std::to_string(http_code) + ": " + error_message);
-            }
-        } else {
-            throw std::runtime_error("Failed to initialize CURL");
+        try {
+            response_json = nlohmann::json::parse(response.body);
+        } catch (const nlohmann::json::parse_error& e) {
+            throw std::runtime_error("Failed to parse API response: " + std::string(e.what()));
         }
 
-        // Convert DeepSeek response format to match expected format
-        // nlohmann::json converted_response;
-        // if (!response_json["choices"].empty()) {
-        //     auto& choice = response_json["choices"][0];
-        //     nlohmann::json message = {
-        //         {"role", "assistant"}
-        //     };
-
-        //     // Handle content if present
-        //     if (choice.contains("text")) {
-        //         message["content"] = choice["text"];
-        //     }
-
-        //     // Handle tool calls if present
-        //     if (choice.contains("tool_calls")) {
-        //         message["tool_calls"] = choice["tool_calls"];
-        //     }
-
-        //     converted_response["choices"] = {{
-        //         {"message", message}
-        //     }};
-        // }
+        // Check for API errors
+        if (response.status_code != 200) {
+            std::string error_message = response_json.contains("error") ? 
+                response_json["error"]["message"].get<std::string>() : 
+                "Unknown API error";
+            throw std::runtime_error("API request failed with code " + 
+                std::to_string(response.status_code) + ": " + error_message);
+        }
 
         return response_json;
     }

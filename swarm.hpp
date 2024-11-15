@@ -20,7 +20,7 @@ public:
         : api_key_(api_key), base_url_(base_url) {}
 
     nlohmann::json get_chat_completion(
-        const Agent& agent,
+        Agent& agent,
         const std::vector<nlohmann::json>& history,
         const std::map<std::string, std::string>& context_variables,
         const std::string& model_override,
@@ -30,6 +30,7 @@ public:
         nlohmann::json payload;
         payload["model"] = model_override.empty() ? agent.get_model() : model_override;
         
+        agent.set_instructions(context_variables);
         debug_print(debug, "Agent instructions: " + agent.get_instructions());
         // Create messages array starting with system instructions
         std::vector<nlohmann::json> messages = {

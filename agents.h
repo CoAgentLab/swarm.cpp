@@ -13,7 +13,8 @@ class Agent;
 /// Function type that processes agent requests and returns either a string response,
 /// a new Agent instance, or a context map
 using AgentFunction = std::function<std::variant<std::string, Agent, std::map<std::string, std::string>>(const std::map<std::string, std::string>&)>;
-
+// Define a type for callable instructions
+using InstructionFunction = std::function<std::string(const std::map<std::string, std::string>&)>;
 
 // a parameter of a function
 struct Parameter {
@@ -48,8 +49,6 @@ inline FunctionSignature create_function_signature(
     };
 }
 
-// Define a type for callable instructions
-using InstructionFunction = std::function<std::string(const std::map<std::string, std::string>&)>;
 
 class Agent {
 public:
@@ -91,14 +90,7 @@ public:
     virtual std::string get_model() const { return model; }
     virtual void set_model(const std::string& new_model) { model = new_model; }
 
-    virtual std::string get_instructions(const std::map<std::string, std::string>& context = {}) const {
-        if (std::holds_alternative<std::string>(instructions)) {
-            return std::get<std::string>(instructions);
-        } else {
-            return std::get<InstructionFunction>(instructions)(context);
-        }
-    }
-
+    // Set the instructions based on the context
     virtual void set_instructions(const std::string& new_instructions) { 
         instructions = new_instructions; 
     }
@@ -106,6 +98,23 @@ public:
     virtual void set_instructions(InstructionFunction new_instructions) { 
         instructions = new_instructions; 
     }
+
+    virtual void set_instructions(const std::map<std::string, std::string>& context = {}) {
+        if (std::holds_alternative<std::string>(instructions)) {
+            throw std::runtime_error("Instructions are already set to a static text");
+        } else {
+            instructions = std::get<InstructionFunction>(instructions)(context);
+        }
+    }
+
+    virtual std::string get_instructions() const { 
+        if (std::holds_alternative<std::string>(instructions)) {
+            return std::get<std::string>(instructions);
+        } else {
+            return std::get<InstructionFunction>(instructions)({});  // Call with empty context
+        }
+    }
+
 
 protected:
     // Protected methods that derived classes can use

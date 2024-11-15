@@ -48,22 +48,30 @@ inline FunctionSignature create_function_signature(
     };
 }
 
+// Define a type for callable instructions
+using InstructionFunction = std::function<std::string(const std::map<std::string, std::string>&)>;
 
 class Agent {
 public:
     std::string name = "Agent";
     std::string model = "gpt-4o";
-    std::string instructions = "You are a helpful agent.";
+    std::variant<std::string, InstructionFunction> instructions = "You are a helpful agent.";
     std::vector<FunctionSignature> functions;
     std::string tool_choice;
     bool parallel_tool_calls = true;
 
-    // constructor with default values
+    // Constructor overloads for different instruction types
     Agent(
         const std::string& name = "Agent",
         const std::string& model = "gpt-4",
-        const std::string& instructions = "You are a helpful agent."
-    ) : name(name), model(model), instructions(instructions) {}
+        const std::string& static_instructions = "You are a helpful agent."
+    ) : name(name), model(model), instructions(static_instructions) {}
+
+    Agent(
+        const std::string& name,
+        const std::string& model,
+        InstructionFunction dynamic_instructions
+    ) : name(name), model(model), instructions(dynamic_instructions) {}
 
     // Virtual destructor for safe inheritance
     virtual ~Agent() = default;
@@ -83,9 +91,21 @@ public:
     virtual std::string get_model() const { return model; }
     virtual void set_model(const std::string& new_model) { model = new_model; }
 
-    virtual std::string get_instructions() const { return instructions; }
-    virtual void set_instructions(const std::string& new_instructions) { instructions = new_instructions; }
+    virtual std::string get_instructions(const std::map<std::string, std::string>& context = {}) const {
+        if (std::holds_alternative<std::string>(instructions)) {
+            return std::get<std::string>(instructions);
+        } else {
+            return std::get<InstructionFunction>(instructions)(context);
+        }
+    }
 
+    virtual void set_instructions(const std::string& new_instructions) { 
+        instructions = new_instructions; 
+    }
+
+    virtual void set_instructions(InstructionFunction new_instructions) { 
+        instructions = new_instructions; 
+    }
 
 protected:
     // Protected methods that derived classes can use

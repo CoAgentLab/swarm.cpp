@@ -103,15 +103,17 @@ public:
         if (std::holds_alternative<std::string>(instructions)) {
             throw std::runtime_error("Instructions are already set to a static text");
         } else {
+            // Call the dynamic instructions function with the context, and set the instructions to the result.
             instructions = std::get<InstructionFunction>(instructions)(context);
         }
     }
 
-    virtual std::string get_instructions() const { 
+    // Overload for when no context is needed
+    virtual std::string get_instructions() const {
         if (std::holds_alternative<std::string>(instructions)) {
             return std::get<std::string>(instructions);
         } else {
-            return std::get<InstructionFunction>(instructions)({});  // Call with empty context
+            return "[Dynamic Instruction Function]";
         }
     }
 

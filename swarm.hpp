@@ -29,9 +29,12 @@ public:
     ) {
         nlohmann::json payload;
         payload["model"] = model_override.empty() ? agent.get_model() : model_override;
-        
-        agent.set_instructions(context_variables);
-        debug_print(debug, "Agent instructions: " + agent.get_instructions());
+        // Check if we have context variables and if the agent has dynamic instructions
+        if (!context_variables.empty() && std::holds_alternative<InstructionFunction>(agent.instructions)) {
+            agent.set_instructions(context_variables);
+        }
+        print_agent_state(debug, agent);
+
         // Create messages array starting with system instructions
         std::vector<nlohmann::json> messages = {
             {{"role", "system"}, {"content", agent.get_instructions()}}
@@ -221,7 +224,10 @@ public:
         Response final_response;
 
         while (history.size() - init_len < max_turns && active_agent != nullptr) {
-            print_agent_state(debug, *active_agent);
+            std::cout << "Context variables for completion:" << std::endl;
+            for (const auto& [key, value] : context_variables) {
+                std::cout << key << ": " << value << std::endl;
+            }
             nlohmann::json completion = get_chat_completion(
                 *active_agent, history, context_variables, model_override, stream, debug
             );

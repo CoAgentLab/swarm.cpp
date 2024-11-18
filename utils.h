@@ -37,14 +37,19 @@ inline void debug_print(bool debug, const std::string& message) {
 inline void print_agent_state(bool debug, const Agent& agent) {
     if (!debug) return;
 
-    std::cout << "\nActive Agent State:"    
-                << "\nName: " << agent.get_name()
-                << "\nModel: " << agent.get_model() 
-                << "\nInstructions: " << agent.get_instructions()
-                << "\nNumber of functions: " << agent.functions.size()
-                << "\nTool choice: " << agent.tool_choice
-                << "\nParallel tool calls: " << (agent.parallel_tool_calls ? "true" : "false")
-                << std::endl;
+    const std::string separator = "----------------------------------------";
+    
+    std::cout << "\n" << separator << "\n"
+              << "🤖 Active Agent State\n"
+              << separator << "\n"
+              << "📝 Name:              " << agent.get_name() << "\n"
+              << "🔧 Model:             " << agent.get_model() << "\n"
+              << "📋 Instructions:       " << agent.get_instructions() << "\n"
+              << "🛠  Available Tools:    " << agent.functions.size() << "\n"
+              << "🎯 Tool Choice:        " << agent.tool_choice << "\n"
+              << "⚡ Parallel Execution: " << (agent.parallel_tool_calls ? "Enabled" : "Disabled") << "\n"
+              << separator << "\n"
+              << std::endl;
 }
 
 inline void merge_fields(std::map<std::string, std::string>& target, 

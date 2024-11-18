@@ -54,7 +54,8 @@ int main() {
         }
     };  
 
-    auto response = swarm.run(user, messages, user_database);
+    std::cout << "Running swarm" << std::endl;
+    auto response = swarm.run(user, messages, user_database, "", false, true);
 
     // Print the final response
     for (const auto& message : response.get_messages()) {

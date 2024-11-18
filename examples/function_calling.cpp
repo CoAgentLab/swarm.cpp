@@ -41,7 +41,7 @@ int main() {
 
     std::map<std::string, std::string> context;
 
-    auto response = swarm.run(agent, messages, context);
+    auto response = swarm.run(agent, messages, context, "", false, true);
 
     // Print the final response
     for (const auto& message : response.get_messages()) {

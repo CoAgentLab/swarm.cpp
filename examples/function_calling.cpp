@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 
 
-std::string api_key = "sk-face3f6903e24f778bbe44b21d82dc6e";
+std::string api_key = "your_api_key";
 std::string base_url = "https://api.deepseek.com/chat/completions";
 
 AgentFunction add_two_numbers = [](const std::map<std::string, std::string>& params) -> std::variant<std::string, Agent, std::map<std::string, std::string>> {

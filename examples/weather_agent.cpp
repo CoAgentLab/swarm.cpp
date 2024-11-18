@@ -80,7 +80,7 @@ int main() {
     weather_agent.functions = {check_weather_metadata, get_forecast_metadata, get_alerts_metadata};
     
     // Initialize the Swarm with your API credentials
-    std::string api_key = "sk-face3f6903e24f778bbe44b21d82dc6e";
+    std::string api_key = "your_api_key";
     std::string base_url = "https://api.deepseek.com/chat/completions";
     Swarm swarm(api_key, base_url);
                 

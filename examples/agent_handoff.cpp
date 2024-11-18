@@ -32,13 +32,8 @@ int main() {
     english_agent.functions = {transfer_metadata};
     
     // Initialize the Swarm with API credentials
-    // std::string api_key = "sk-face3f6903e24f778bbe44b21d82dc6e";
-    // std::string base_url = "https://api.deepseek.com/beta/completions";
-
-    std::string api_key = "sk-face3f6903e24f778bbe44b21d82dc6e";
+    std::string api_key = "your_api_key";
     std::string base_url = "https://api.deepseek.com/chat/completions";
-    
-    // std::string api_key = "sk-hxjweswehodmsljfxlwbigqfhkfcxwyttwxpkxahajcvjmgr";
     // std::string base_url="https://api.siliconflow.cn/v1";
 
     Swarm swarm(api_key, base_url);

@@ -11,18 +11,17 @@ std::map<std::string, std::string> user_database = {
     {"age", "30"},
     {"city", "New York"},
     {"country", "USA"},
-    {"user_id", "12345"}
+    {"user_id", "123456"}
 };
 
 AgentFunction get_user_info = [](const std::map<std::string, std::string>& params) -> std::variant<std::string, Agent, std::map<std::string, std::string>> {
-    std::cout << "Getting user info" << std::endl;
+    std::cout << "Getting user info for key: " << params.at("key") << std::endl;
     
-    std::string name = user_database.at("name");
-    std::string age = user_database.at("age");
-    std::string city = user_database.at("city");
-    std::string country = user_database.at("country");
-    
-    return name + " is " + age + " years old from " + city + ", " + country;
+    try {
+        return user_database.at(params.at("key"));
+    } catch (const std::out_of_range& e) {
+        return "Information not found for key: " + params.at("key");
+    }
 };
 
 InstructionFunction instructions = [](const std::map<std::string, std::string>& context) -> std::string {
@@ -33,24 +32,26 @@ InstructionFunction instructions = [](const std::map<std::string, std::string>& 
 int main() {
     Agent user("Agent", "deepseek-chat", instructions);
     user.functions = {create_function_signature<decltype(get_user_info)>(
-        "get_user_info",
-        "Get user information",
-        get_user_info,
+        "get_user_info", // function name
+        "Get specific user information by key", // function description
+        get_user_info, // function implementation
         {
-            {"name", "The name of the user"},
-            {"age", "The age of the user"},
-            {"city", "The city of the user"},
-            {"country", "The country of the user"}
+            {"key", "The key to look up in the user database"} // parameter description
         },
-        {"name"}  // required parameters
+        {"key"}  // required parameters
     )};
     
     Swarm swarm(api_key, base_url);
 
+    // Get user input for the key they want to check
+    std::string user_query;
+    std::cout << "What information would you like to check? (name/age/city/country/user_id): ";
+    std::getline(std::cin, user_query);
+
     std::vector<nlohmann::json> messages = {
         {
             {"role", "user"},
-            {"content", "What is my user id?"}
+            {"content", "What is my " + user_query + "?"}
         }
     };  
 

@@ -5,12 +5,13 @@
 
 class HttpClient {
 public:
-    struct Response {
+    struct HttpResponse {
         int status_code;
         std::string body;
+        nlohmann::json json;
     };
 
-    static Response post_json(
+    static HttpResponse post_json(
         const std::string& url,
         const std::string& api_key,
         const nlohmann::json& payload,

@@ -79,27 +79,9 @@ public:
             }
         }
 
-        // Make the HTTP request
+        // Make the HTTP request and get parsed JSON response
         auto response = HttpClient::post_json(base_url_, api_key_, payload, debug);
-        
-        // Parse response
-        nlohmann::json response_json;
-        try {
-            response_json = nlohmann::json::parse(response.body);
-        } catch (const nlohmann::json::parse_error& e) {
-            throw std::runtime_error("Failed to parse API response: " + std::string(e.what()));
-        }
-
-        // Check for API errors
-        if (response.status_code != 200) {
-            std::string error_message = response_json.contains("error") ? 
-                response_json["error"]["message"].get<std::string>() : 
-                "Unknown API error";
-            throw std::runtime_error("API request failed with code " + 
-                std::to_string(response.status_code) + ": " + error_message);
-        }
-
-        return response_json;
+        return response.json;
     }
 
 

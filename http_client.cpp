@@ -6,14 +6,14 @@ size_t HttpClient::WriteCallback(void* contents, size_t size, size_t nmemb, std:
     return size * nmemb;
 }
 
-HttpClient::Response HttpClient::post_json(
+HttpClient::HttpResponse HttpClient::post_json(
     const std::string& url,
     const std::string& api_key,
     const nlohmann::json& payload,
     bool debug
 ) {
     CURL* curl = curl_easy_init();
-    Response response;
+    HttpResponse response;
     std::string response_string;
 
     if (!curl) {
@@ -48,6 +48,22 @@ HttpClient::Response HttpClient::post_json(
 
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response.status_code);
     response.body = response_string;
+
+    // Parse response
+    try {
+        response.json = nlohmann::json::parse(response.body);
+    } catch (const nlohmann::json::parse_error& e) {
+        throw std::runtime_error("Failed to parse API response: " + std::string(e.what()));
+    }
+
+    // Check for API errors
+    if (response.status_code != 200) {
+        std::string error_message = response.json.contains("error") ? 
+            response.json["error"]["message"].get<std::string>() : 
+            "Unknown API error";
+        throw std::runtime_error("API request failed with code " + 
+            std::to_string(response.status_code) + ": " + error_message);
+    }
 
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);

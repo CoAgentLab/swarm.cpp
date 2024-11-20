@@ -1,20 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(swarm.cpp)
 
-# GoogleTest requires at least C++14
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Find and include nlohmann_json
-include_directories(/home/liyang/Dependencies/nlohmann-json/include/)
-
-# Exclude Anaconda paths
-set(CMAKE_IGNORE_PATH "/opt/anaconda3")
-# Find Google Test
-find_package(GTest REQUIRED CONFIG PATHS /usr/local/lib/cmake/GTest NO_DEFAULT_PATH)
-# message(STATUS "GTest include dirs: ${GTEST_INCLUDE_DIRS}")
-# message(STATUS "GTest libraries: ${GTEST_LIBRARIES}")
-
 # Add at the beginning of your CMakeLists.txt, after project()
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-fexec-charset=UTF-8)
@@ -28,40 +14,47 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     )
 endif()
 
+# requires at least C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(http_client http_client.cpp)
+# Options
+option(OPENAI_BUILD_EXAMPLES "Build example programs" ON)
 
-
-# Add source files
-# add_executable(test tests/base_tests.cpp)
-add_executable(weather_agent examples/weather_agent.cpp)  # Add the main program
-add_executable(agent_handoff examples/agent_handoff.cpp)
-add_executable(base_agent examples/base_agent.cpp)
-add_executable(function_calling examples/function_calling.cpp)
-add_executable(dynamic_agent examples/dynamic_agent.cpp)
-add_executable(use_database examples/use_database.cpp)
-add_executable(openai_cpp_usage examples/openai_cpp_usage.cpp)
-
-# Link against Google Test and project libraries
-# target_link_libraries(test GTest::gtest GTest::gtest_main)
-
-
-# Link CURL and other dependencies for the main program
+# Find dependencies
 find_package(CURL REQUIRED)
-target_link_libraries(weather_agent PRIVATE http_client CURL::libcurl )
-target_link_libraries(agent_handoff PRIVATE http_client CURL::libcurl)
-target_link_libraries(base_agent PRIVATE http_client CURL::libcurl)
-target_link_libraries(function_calling PRIVATE http_client CURL::libcurl)
-target_link_libraries(dynamic_agent PRIVATE http_client CURL::libcurl)
-target_link_libraries(use_database PRIVATE http_client CURL::libcurl)
-target_link_libraries(openai_cpp_usage PRIVATE http_client CURL::libcurl)
+# find_package(nlohmann_json REQUIRED)
+# include_directories(/path/to/nlohmann-json/include/)
+find_package(GTest REQUIRED CONFIG PATHS /usr/local/lib/cmake/GTest NO_DEFAULT_PATH)
+# message(STATUS "GTest include dirs: ${GTEST_INCLUDE_DIRS}")
+# message(STATUS "GTest libraries: ${GTEST_LIBRARIES}")
 
-# Include directories
-# target_include_directories(test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(weather_agent PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(agent_handoff PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(base_agent PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(function_calling PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(dynamic_agent PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(use_database PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(openai_cpp_usage PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})   
+# Exclude Anaconda paths
+set(CMAKE_IGNORE_PATH "/opt/anaconda3")
+
+include_directories(
+    ${PROJECT_SOURCE_DIR}/include
+)
+
+# Create library target
+add_library(http_client src/http_client.cpp)
+
+
+target_include_directories(http_client
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(http_client
+    PUBLIC
+        CURL::libcurl
+        # nlohmann_json::nlohmann_json
+)
+
+
+# Examples
+if(OPENAI_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()  

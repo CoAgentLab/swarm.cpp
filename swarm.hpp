@@ -18,6 +18,9 @@ class Swarm {
 public:
     Swarm(const std::string& api_key, const std::string& base_url) 
         : api_key_(api_key), base_url_(base_url) {}
+        
+    virtual void set_api_key(const std::string& new_api_key) { api_key_ = new_api_key; }
+    virtual void set_base_url(const std::string& new_base_url) { base_url_ = new_base_url; }
 
     nlohmann::json get_chat_completion(
         Agent& agent,

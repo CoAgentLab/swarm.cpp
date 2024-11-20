@@ -40,6 +40,7 @@ add_executable(base_agent examples/base_agent.cpp)
 add_executable(function_calling examples/function_calling.cpp)
 add_executable(dynamic_agent examples/dynamic_agent.cpp)
 add_executable(use_database examples/use_database.cpp)
+add_executable(openai_cpp_usage examples/openai_cpp_usage.cpp)
 
 # Link against Google Test and project libraries
 # target_link_libraries(test GTest::gtest GTest::gtest_main)
@@ -53,6 +54,7 @@ target_link_libraries(base_agent PRIVATE http_client CURL::libcurl)
 target_link_libraries(function_calling PRIVATE http_client CURL::libcurl)
 target_link_libraries(dynamic_agent PRIVATE http_client CURL::libcurl)
 target_link_libraries(use_database PRIVATE http_client CURL::libcurl)
+target_link_libraries(openai_cpp_usage PRIVATE http_client CURL::libcurl)
 
 # Include directories
 # target_include_directories(test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -62,3 +64,4 @@ target_include_directories(base_agent PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(function_calling PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(dynamic_agent PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(use_database PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(openai_cpp_usage PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})   

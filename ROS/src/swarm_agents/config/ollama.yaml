@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    model:
+      api_key: ""
+      base_url: "http://localhost:11434"
+      name: "llama3.2:3b"
+

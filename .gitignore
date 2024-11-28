@@ -5,6 +5,12 @@
 .cache/
 .ipynb_checkpoints/
 
+# ROS build files
+build/
+devel/
+install/
+log/
+
 # cmake build directory and files
 build/
 CMakeCache.txt

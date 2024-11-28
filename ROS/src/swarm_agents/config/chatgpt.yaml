@@ -1,0 +1,5 @@
+/**:
+  ros__parameters:
+    model:
+      api_key: "sk-face3f6903e24f778bbe44b21d82dc6e"
+      base_url: "https://api.deepseek.com/chat/completions"
